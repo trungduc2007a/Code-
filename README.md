@@ -1,2 +1,1 @@
-# Code-
-5 thành viên sẽ nhập code vô file trong này
+# Các thành viên sẽ nhập code trong Project này
