@@ -77,8 +77,6 @@ if __name__ == "__main__":
 # ==========================================
 # THÀNH VIÊN 5
 # ==========================================
-# OOP
-# ==========================================
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -133,6 +131,13 @@ class DataPredictor:
         input_data = np.array([[boxes, price, marketing]])
         prediction = self.model.predict(input_data)
         return prediction[0]
+        
+         st.markdown("---")
+    with st.expander("Bảo vệ phương án: Tại sao chọn Linear Regression?"):
+        # TODO: Ghi chú các gạch đầu dòng lý luận
+        st.write("- Lý do không dùng If/Else...")
+        st.write("- Lý do không dùng Deep Learning...")
+        st.write("- Ưu điểm của Linear Regression với dữ liệu này...")
 # ==========================================
 # GIAO DIỆN UI
 # ==========================================
@@ -176,19 +181,7 @@ def render_tab_5(df_clean):
     with col_in3:
         # TODO: Tạo st.number_input cho Marketing_Spend
         st.write("[Ô nhập Chi phí Marketing]")
-        
-    # Sườn cho nút bấm dự đoán
     if st.button("Chạy Dự đoán"):
         # TODO: Lấy dữ liệu từ 3 ô input trên truyền vào predictor.predict_revenue()
         # In ra kết quả
         st.success("Doanh thu dự kiến: [$ Kết quả tính toán]")
-
-    # ==========================================
-    # PHẦN 3: BẢO VỆ PHƯƠNG ÁN (Theo yêu cầu docx)
-    # ==========================================
-    st.markdown("---")
-    with st.expander("Bảo vệ phương án: Tại sao chọn Linear Regression?"):
-        # TODO: Ghi chú các gạch đầu dòng lý luận
-        st.write("- Lý do không dùng If/Else...")
-        st.write("- Lý do không dùng Deep Learning...")
-        st.write("- Ưu điểm của Linear Regression với dữ liệu này...")
