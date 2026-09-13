@@ -1,1 +1,1 @@
-# Thêm code vào trong CaseStudy.py nhé
+# Thôi, tự tạo các file riêng để thêm code vào nhé
