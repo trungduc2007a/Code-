@@ -231,7 +231,7 @@ class DataVisualizer:
                 linewidth=2,
                 markersize=6
             )
-            ax.set_title(f"📈 Xu Hướng Doanh Thu Theo {label_text}", fontsize=12, fontweight='bold', pad=12)
+            ax.set_title(f" Xu Hướng Doanh Thu Theo {label_text}", fontsize=12, fontweight='bold', pad=12)
             ax.set_xlabel("Thời Gian")
             ax.set_ylabel("Tổng Doanh Thu ($)")
             ax.grid(True, linestyle='--', alpha=0.5)
@@ -252,12 +252,12 @@ class DataVisualizer:
             if group_by == 'Product':
                 # Top 10 sản phẩm
                 grouped = self.df.groupby('Product')['Amount'].sum().sort_values(ascending=True).tail(10)
-                title = "🏆 Top 10 Sản Phẩm Có Doanh Thu Cao Nhất"
+                title = " Top 10 Sản Phẩm Có Doanh Thu Cao Nhất"
                 color = '#2ca02c'
             else:
                 # Doanh thu theo quốc gia
                 grouped = self.df.groupby('Country')['Amount'].sum().sort_values(ascending=True)
-                title = "🌍 So Sánh Doanh Thu Giữa Các Quốc Gia (Country)"
+                title = " So Sánh Doanh Thu Giữa Các Quốc Gia (Country)"
                 color = '#1f77b4'
 
             bars = ax.barh(grouped.index, grouped.values, color=color, alpha=0.85, edgecolor='black', linewidth=0.5)
@@ -296,7 +296,7 @@ class DataVisualizer:
                 shadow=True,
                 textprops={'fontsize': 11, 'weight': 'bold'}
             )
-            ax.set_title("🍕 Tỷ Trọng Doanh Thu Theo Kênh Bán Hàng (Channel)", fontsize=12, fontweight='bold', pad=12)
+            ax.set_title(" Tỷ Trọng Doanh Thu Theo Kênh Bán Hàng (Channel)", fontsize=12, fontweight='bold', pad=12)
         else:
             ax.text(0.5, 0.5, "Thiếu cột Channel hoặc Amount trong dữ liệu", ha='center', va='center', color='red')
 
@@ -328,7 +328,7 @@ class DataVisualizer:
                 color='red', 
                 line_kws={'linewidth': 1.5}
             )
-            axes[0].set_title("🔵 Phân Tán: Boxes_Shipped vs Amount", fontsize=11, fontweight='bold')
+            axes[0].set_title(" Phân Tán: Boxes_Shipped vs Amount", fontsize=11, fontweight='bold')
             axes[0].set_xlabel("Số Hộp Vận Chuyển (Boxes_Shipped)")
             axes[0].set_ylabel("Doanh Thu (Amount)")
             axes[0].grid(True, linestyle='--', alpha=0.5)
@@ -350,7 +350,7 @@ class DataVisualizer:
                 ax=axes[1],
                 vmin=-1, vmax=1
             )
-            axes[1].set_title("🔥 Bản Đồ Nhiệt Tương Quan (Heatmap)", fontsize=11, fontweight='bold')
+            axes[1].set_title(" Bản Đồ Nhiệt Tương Quan (Heatmap)", fontsize=11, fontweight='bold')
         else:
             axes[1].text(0.5, 0.5, "Thiếu dữ liệu vẽ Heatmap", ha='center', va='center')
 
@@ -365,11 +365,11 @@ def render_tab_4(df_clean: pd.DataFrame):
     """
     Hàm dựng giao diện Tab 4 cho ứng dụng Streamlit.
     """
-    st.header("📊 Tab 4: Trực Quan Hóa Dữ Liệu")
+    st.header(" Tab 4: Trực Quan Hóa Dữ Liệu")
     st.caption("Module `src/visualizer.py` - Lập trình bởi Thành viên 4")
     
     if df_clean is None or df_clean.empty:
-        st.warning("⚠️ Chưa có dữ liệu sạch từ RAM. Vui lòng kiểm tra lại luồng chạy ở các Tab trước.")
+        st.warning(" Chưa có dữ liệu sạch từ RAM. Vui lòng kiểm tra lại luồng chạy ở các Tab trước.")
         return
 
     # Khởi tạo đối tượng DataVisualizer từ dữ liệu RAM
@@ -378,7 +378,7 @@ def render_tab_4(df_clean: pd.DataFrame):
 
     # Giao diện UI: Tạo các hộp chọn (Dropdown) theo đúng phân công
     chart_choice = st.selectbox(
-        "🎛️ Chọn thuộc tính / loại biểu đồ muốn xem trực quan:",
+        " Chọn thuộc tính / loại biểu đồ muốn xem trực quan:",
         [
             "1. Biểu đồ đường - Xu hướng doanh thu theo Tháng",
             "2. Biểu đồ đường - Xu hướng doanh thu theo Quý",
@@ -390,7 +390,7 @@ def render_tab_4(df_clean: pd.DataFrame):
         key="member_4_select_box"
     )
 
-    st.markdown("### 📉 Kết Quả Hiển Thị Biểu Đồ")
+    st.markdown("###  Kết Quả Hiển Thị Biểu Đồ")
 
     # Render biểu đồ tương ứng với lựa chọn của người dùng
     if "Tháng" in chart_choice:
