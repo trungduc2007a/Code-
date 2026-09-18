@@ -16,10 +16,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # ==========================================
-# KHU VỰC ĐẤT DIỄN CỦA THÀNH VIÊN 2 (Là em)
+# KHU VỰC ĐẤT DIỄN CỦA THÀNH VIÊN 2 
 # ==========================================
 # ==========================================
-# KHU VỰC ĐẤT DIỄN CỦA THÀNH VIÊN 2 (Là em)
+# KHU VỰC ĐẤT DIỄN CỦA THÀNH VIÊN 2 
 # ==========================================
 with tab2:
     st.header("🛠️ Tiền xử lý & Làm sạch dữ liệu")
