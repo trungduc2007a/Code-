@@ -11,7 +11,7 @@ import streamlit as st
 
 class DataVisualizer:
     """
-    Class DataVisualizer nhận kết quả dữ liệu từ RAM (Thành viên 3)
+    Class DataVisualizer nhận kết quả dữ liệu sạch 
     và lập trình các hàm vẽ biểu đồ bằng Matplotlib và Seaborn.
     """
     def __init__(self, df: pd.DataFrame):
@@ -55,19 +55,16 @@ class DataVisualizer:
 
     def plot_bar_chart(self, group_by: str = 'Country') -> plt.Figure:
         """
-        2. Biểu đồ thanh ngang/Cột (Bar/Horizontal Bar Chart): 
-           So sánh doanh thu giữa các quốc gia (Country) hoặc top sản phẩm (Product).
+        2. Biểu đồ thanh ngang/Cột: So sánh doanh thu giữa các quốc gia hoặc top sản phẩm.
         """
         fig, ax = plt.subplots(figsize=(10, 5))
         
         if group_by in self.df.columns and 'Amount' in self.df.columns:
             if group_by == 'Product':
-                # Top 10 sản phẩm
                 grouped = self.df.groupby('Product')['Amount'].sum().sort_values(ascending=True).tail(10)
                 title = " Top 10 Sản Phẩm Có Doanh Thu Cao Nhất"
                 color = '#2ca02c'
             else:
-                # Doanh thu theo quốc gia
                 grouped = self.df.groupby('Country')['Amount'].sum().sort_values(ascending=True)
                 title = " So Sánh Doanh Thu Giữa Các Quốc Gia (Country)"
                 color = '#1f77b4'
@@ -78,7 +75,6 @@ class DataVisualizer:
             ax.set_ylabel(group_by)
             ax.grid(axis='x', linestyle='--', alpha=0.5)
             
-            # Hiển thị giá trị cụ thể ở từng thanh
             for bar in bars:
                 w = bar.get_width()
                 ax.text(w * 1.01, bar.get_y() + bar.get_height()/2, f"${w:,.0f}", va='center', fontsize=8)
@@ -89,8 +85,7 @@ class DataVisualizer:
 
     def plot_pie_chart(self) -> plt.Figure:
         """
-        3. Biểu đồ tròn (Pie Chart): 
-           Thể hiện tỷ trọng doanh thu theo kênh bán hàng (Channel: Retail, Wholesale, Online).
+        3. Biểu đồ tròn: Tỷ trọng doanh thu theo kênh bán hàng.
         """
         fig, ax = plt.subplots(figsize=(7, 6))
         
@@ -116,12 +111,10 @@ class DataVisualizer:
 
     def plot_scatter_and_heatmap(self) -> plt.Figure:
         """
-        4. Biểu đồ phân tán (Scatter Plot) & Nhiệt (Heatmap): 
-           Thể hiện độ tương quan giữa Boxes_Shipped, Marketing_Spend, Discount_Pct, Amount.
+        4. Biểu đồ phân tán (Scatter Plot) & Nhiệt (Heatmap).
         """
         fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
         
-        # Biểu đồ phân tán (Scatter Plot)
         if 'Boxes_Shipped' in self.df.columns and 'Amount' in self.df.columns:
             sns.scatterplot(
                 data=self.df, 
@@ -147,7 +140,6 @@ class DataVisualizer:
         else:
             axes[0].text(0.5, 0.5, "Thiếu cột Boxes_Shipped hoặc Amount", ha='center', va='center')
 
-        # Bản đồ nhiệt (Heatmap) độ tương quan 4 biến
         target_cols = ['Boxes_Shipped', 'Marketing_Spend', 'Discount_Pct', 'Amount']
         valid_cols = [c for c in target_cols if c in self.df.columns]
         
@@ -176,6 +168,7 @@ class DataVisualizer:
 def render_tab_4(df_clean: pd.DataFrame):
     """
     Hàm dựng giao diện Tab 4 cho ứng dụng Streamlit.
+    (Hàm này sẽ được gọi bởi file app.py chính của nhóm)
     """
     st.header(" Tab 4: Trực Quan Hóa Dữ Liệu")
     st.caption("Module `src/visualizer.py` - Lập trình bởi Thành viên 4")
@@ -184,11 +177,9 @@ def render_tab_4(df_clean: pd.DataFrame):
         st.warning(" Chưa có dữ liệu sạch từ RAM. Vui lòng kiểm tra lại luồng chạy ở các Tab trước.")
         return
 
-    # Khởi tạo đối tượng DataVisualizer từ dữ liệu RAM
     visualizer = DataVisualizer(df_clean)
     st.markdown("---")
 
-    # Giao diện UI: Tạo các hộp chọn (Dropdown) theo đúng phân công
     chart_choice = st.selectbox(
         " Chọn thuộc tính / loại biểu đồ muốn xem trực quan:",
         [
@@ -204,7 +195,6 @@ def render_tab_4(df_clean: pd.DataFrame):
 
     st.markdown("###  Kết Quả Hiển Thị Biểu Đồ")
 
-    # Render biểu đồ tương ứng với lựa chọn của người dùng
     if "Tháng" in chart_choice:
         st.pyplot(visualizer.plot_line_chart(freq='M'))
     elif "Quý" in chart_choice:
@@ -217,3 +207,42 @@ def render_tab_4(df_clean: pd.DataFrame):
         st.pyplot(visualizer.plot_pie_chart())
     elif "tương quan" in chart_choice:
         st.pyplot(visualizer.plot_scatter_and_heatmap())
+
+# =====================================================================
+# PIPELINE KIỂM THỬ ĐỘC LẬP (Mô phỏng luồng dữ liệu)
+# =====================================================================
+if __name__ == "__main__":
+    # Khối lệnh này chỉ chạy khi bạn gõ: streamlit run data_visualizer_2.py
+    # Nếu file này được import vào app.py, khối lệnh này sẽ bị bỏ qua.
+    
+    st.set_page_config(layout="wide", page_title="Test Tab 4")
+    
+    try:
+        # Cố gắng lấy dữ liệu thật từ các file trước đó
+        from data_loader import DataLoader
+        from data_cleaner import DataCleaner
+        
+        loader = DataLoader("Chocolate_Sales.xlsx")
+        df_raw = loader.process_data()
+        
+        cleaner = DataCleaner(df_raw)
+        df_cleaned = cleaner.clean_missing_and_negative_data()
+        df_final = cleaner.feature_engineering()
+        
+    except Exception as e:
+        st.warning(f"Không thể tải dữ liệu thật (Lỗi: {e}). Đang dùng dữ liệu giả lập.")
+        # Dữ liệu giả lập để vẽ biểu đồ khi test độc lập
+        dates = pd.date_range(start='2023-01-01', periods=100)
+        df_final = pd.DataFrame({
+            'Order_Date': dates,
+            'Amount': np.random.randint(100, 1000, 100),
+            'Boxes_Shipped': np.random.randint(10, 100, 100),
+            'Country': np.random.choice(['USA', 'UK', 'Canada'], 100),
+            'Product': np.random.choice(['Dark Choc', 'Milk Choc', 'White Choc'], 100),
+            'Channel': np.random.choice(['Online', 'Retail', 'Wholesale'], 100),
+            'Marketing_Spend': np.random.randint(50, 200, 100),
+            'Discount_Pct': np.random.uniform(0.01, 0.15, 100)
+        })
+    
+    # Gọi hàm dựng giao diện như cách file app.py sẽ gọi
+    render_tab_4(df_final)
