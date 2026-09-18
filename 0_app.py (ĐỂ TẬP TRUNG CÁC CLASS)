@@ -1,73 +1,154 @@
 import streamlit as st
 import pandas as pd
-from cleaner import DataCleaner # Lấy class em vừa viết lúc nãy sang đây
 
-# 1. Cấu hình trang web cơ bản
+# ==========================================
+# IMPORT CÁC CLASS ĐỘC LẬP TỪ 5 FILE
+# (Đảm bảo các file này nằm cùng thư mục với app.py)
+# ==========================================
+from data_loader_2 import DataLoader
+from data_cleaner_2 import DataCleaner
+from data_analyzer_2 import DataAnalyzer
+from data_visualizer_2 import render_tab_4
+from data_predictor_2 import render_tab_5
+
+# ==========================================
+# CẤU HÌNH TRANG & KHỞI TẠO BỘ NHỚ TẠM (SESSION STATE)
+# ==========================================
 st.set_page_config(page_title="Phân tích Chocolate", layout="wide")
 st.title("🍫 Ứng dụng Phân tích Doanh thu Chocolate")
 
-# 2. Tạo các Tab cho 5 thành viên nhóm
+# Khởi tạo biến lưu trữ dữ liệu truyền tay giữa các Tab
+if "df_raw" not in st.session_state:
+    st.session_state.df_raw = None      # Dữ liệu từ Thành viên 1
+if "df_clean" not in st.session_state:
+    st.session_state.df_clean = None    # Dữ liệu từ Thành viên 2
+
+# Tạo các Tab
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Thành viên 1: Nạp dữ liệu", 
-    "Thành viên 2: Xử lí dữ liệu", 
-    "Thành viên 3: Thống kê", 
-    "Thành viên 4: Trực quan", 
-    "Thành viên 5: Dự đoán"
+    "📥 1. Nạp dữ liệu", 
+    "🛠️ 2. Xử lý & Làm sạch", 
+    "📊 3. Thống kê", 
+    "📈 4. Trực quan", 
+    "🚀 5. Dự đoán ML"
 ])
 
 # ==========================================
-# KHU VỰC ĐẤT DIỄN CỦA THÀNH VIÊN 2 
+# TAB 1: THÀNH VIÊN 1 - DATA LOADER
 # ==========================================
+with tab1:
+    st.header("📥 Thành viên 1: Nạp và Định dạng Dữ liệu")
+    
+    file_path = st.text_input("Đường dẫn file Excel:", "Chocolate_Sales.xlsx")
+    
+    if st.button("🚀 Nạp và Trích xuất Dữ liệu", type="primary"):
+        with st.spinner("Đang đọc dữ liệu..."):
+            try:
+                loader = DataLoader(file_path)
+                df_raw = loader.process_data()
+                
+                # Lưu vào bộ nhớ tạm để Tab 2 lấy dùng
+                st.session_state.df_raw = df_raw
+                st.success(f"✅ Đã nạp thành công {len(df_raw)} dòng dữ liệu thô!")
+            except Exception as e:
+                st.error(f"Lỗi khi đọc file: {e}")
+                
+    # Hiển thị bảng nếu đã nạp thành công
+    if st.session_state.df_raw is not None:
+        st.subheader("Bản xem trước Dữ liệu Thô (100 dòng đầu)")
+        st.dataframe(st.session_state.df_raw.head(100), use_container_width=True)
+
+
 # ==========================================
-# KHU VỰC ĐẤT DIỄN CỦA THÀNH VIÊN 2 
+# TAB 2: THÀNH VIÊN 2 - DATA CLEANER
 # ==========================================
 with tab2:
-    st.header("🛠️ Tiền xử lý & Làm sạch dữ liệu")
+    st.header("🛠️ Thành viên 2: Tiền xử lý & Làm sạch dữ liệu")
     
-    # --- TẠO THANH SIDEBAR ĐỂ NGƯỜI DÙNG TỰ NHẬP CẤU HÌNH ---
-    st.sidebar.header("⚙️ Cấu hình Database")
-    db_type = st.sidebar.selectbox("Loại hệ quản trị CSDL:", ["PostgreSQL", "MySQL"])
-    db_host = st.sidebar.text_input("Host:", "localhost")
-    db_port = st.sidebar.text_input("Port:", "5432" if db_type == "PostgreSQL" else "3306")
-    db_name = st.sidebar.text_input("Tên Database:", "postgres")
-    db_user = st.sidebar.text_input("Tài khoản:", "postgres" if db_type == "PostgreSQL" else "root")
-    db_password = st.sidebar.text_input("Mật khẩu:", type="password") # Ẩn mật khẩu khi gõ
-    # --------------------------------------------------------
-
-    # Hàm tải dữ liệu có nhận các thông số từ Sidebar
-    @st.cache_data 
-    def get_raw_data(t_db, t_host, t_name, t_user, t_pass, t_port):
-        cleaner = DataCleaner(
-            db_type=t_db, db_host=t_host, db_name=t_name, 
-            db_user=t_user, db_password=t_pass, db_port=t_port
-        )
-        df = cleaner.load_data_from_db()
-        return cleaner, df
-
-    # Chỉ bắt đầu kết nối khi người dùng đã nhập mật khẩu
-    if db_password: 
-        try:
-            cleaner_obj, df_raw = get_raw_data(db_type, db_host, db_name, db_user, db_password, db_port)
-            
-            if df_raw is not None:
-                st.success("✅ Đã kết nối thành công tới Database!")
-                
-                st.subheader("1. Bảng dữ liệu gốc (Chưa xử lý)")
-                st.dataframe(df_raw, use_container_width=True)
-                
-                st.subheader("2. Tùy chọn Làm sạch")
-                phuong_phap = st.selectbox("Chọn phương pháp:", ["mean", "median", "drop"])
-                
-                if st.button("🚀 Thực hiện Làm sạch & Tính toán"):
-                    with st.spinner("Đang xử lý dữ liệu..."):
-                        df_cleaned = cleaner_obj.clean_missing_and_negative_data(fill_method=phuong_phap)
-                        df_final = cleaner_obj.feature_engineering()
-                        
-                        st.subheader("3. Bảng dữ liệu hoàn chỉnh")
-                        st.dataframe(df_final, use_container_width=True)
-            else:
-                st.error("❌ Kết nối thất bại. Vui lòng kiểm tra lại thông tin Database hoặc Bảng chưa tồn tại.")
-        except Exception as e:
-            st.error(f"❌ Lỗi: {e}")
+    # Kiểm tra xem Tab 1 đã chạy chưa
+    if st.session_state.df_raw is None:
+        st.info("👈 Vui lòng sang Tab 1 để Nạp dữ liệu trước.")
     else:
-        st.info("👈 Vui lòng nhập Mật khẩu Database ở cột bên trái để bắt đầu.")
+        st.success("✅ Đã nhận được dữ liệu thô từ Tab 1. Sẵn sàng xử lý!")
+        phuong_phap = st.selectbox("Chọn phương pháp điền khuyết dữ liệu (NaN):", ["median", "mean", "drop"])
+        
+        if st.button("🚀 Thực hiện Làm sạch & Tạo đặc trưng", type="primary"):
+            with st.spinner("Đang làm sạch dữ liệu..."):
+                try:
+                    # Truyền thẳng dữ liệu từ bộ nhớ tạm vào Cleaner
+                    cleaner = DataCleaner(st.session_state.df_raw)
+                    cleaner.clean_missing_and_negative_data(fill_method=phuong_phap)
+                    df_clean = cleaner.feature_engineering()
+                    
+                    # Lưu kết quả sạch vào bộ nhớ tạm cho Tab 3, 4, 5
+                    st.session_state.df_clean = df_clean
+                    st.success(f"✅ Làm sạch hoàn tất! Số dòng hợp lệ còn lại: {len(df_clean)}")
+                except Exception as e:
+                    st.error(f"Lỗi khi làm sạch: {e}")
+
+        # Hiển thị bảng sạch
+        if st.session_state.df_clean is not None:
+            st.subheader("Bản xem trước Dữ liệu Sạch (100 dòng đầu)")
+            st.dataframe(st.session_state.df_clean.head(100), use_container_width=True)
+
+
+# ==========================================
+# TAB 3: THÀNH VIÊN 3 - DATA ANALYZER
+# ==========================================
+with tab3:
+    st.header("📊 Thành viên 3: Phân tích Thống kê")
+    
+    # Kiểm tra xem Tab 2 đã chạy chưa
+    if st.session_state.df_clean is None:
+        st.info("👈 Vui lòng sang Tab 2 để Làm sạch dữ liệu trước.")
+    else:
+        # Truyền bảng sạch vào Analyzer
+        analyzer = DataAnalyzer(st.session_state.df_clean)
+        
+        st.subheader("1. Chỉ số KPI Cốt lõi")
+        kpis = analyzer.get_kpi()
+        
+        # Dùng cột của Streamlit để trình bày đẹp mắt
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Tổng Doanh Thu", f"${kpis.get('Tổng doanh thu', 0):,.2f}")
+        col2.metric("Tổng Sản Lượng (Hộp)", f"{kpis.get('Tổng sản lượng', 0):,.0f}")
+        col3.metric("Giá Trị Đơn Trung Bình (AOV)", f"${kpis.get('AOV', 0):,.2f}")
+        col4.metric("Tỷ lệ Marketing / Doanh thu", f"{kpis.get('Marketing / Doanh thu', 0):.2%}")
+        
+        st.divider()
+        col_left, col_right = st.columns(2)
+        
+        with col_left:
+            st.subheader("2. Top 5 Sản Phẩm Bán Chạy")
+            st.dataframe(analyzer.top_products(), use_container_width=True, hide_index=True)
+            
+            st.subheader("3. Tương quan dữ liệu (Pearson)")
+            st.json(analyzer.correlation())
+            
+        with col_right:
+            st.subheader("4. Doanh thu theo Quốc gia")
+            st.dataframe(analyzer.revenue_by_country(), use_container_width=True, hide_index=True)
+            
+            st.subheader("5. Nhân viên Xuất sắc nhất")
+            st.dataframe(analyzer.top_salesperson(), use_container_width=True, hide_index=True)
+
+
+# ==========================================
+# TAB 4: THÀNH VIÊN 4 - DATA VISUALIZER
+# ==========================================
+with tab4:
+    # Uỷ quyền toàn bộ việc render giao diện cho hàm render_tab_4 đã viết sẵn
+    if st.session_state.df_clean is not None:
+        render_tab_4(st.session_state.df_clean)
+    else:
+        st.info("👈 Vui lòng sang Tab 2 để Làm sạch dữ liệu trước khi vẽ biểu đồ.")
+
+
+# ==========================================
+# TAB 5: THÀNH VIÊN 5 - DATA PREDICTOR
+# ==========================================
+with tab5:
+    # Uỷ quyền toàn bộ việc render giao diện cho hàm render_tab_5 đã viết sẵn
+    if st.session_state.df_clean is not None:
+        render_tab_5(st.session_state.df_clean)
+    else:
+        st.info("👈 Vui lòng sang Tab 2 để Làm sạch dữ liệu trước khi chạy Machine Learning.")
