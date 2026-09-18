@@ -1,11 +1,13 @@
 #=====================
 # THÀNH VIÊN 5
+# File: data_predictor_2.py
 #=====================
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+import streamlit as st
 
 class DataPredictor:
     """
@@ -30,30 +32,28 @@ class DataPredictor:
         self.r2_score = None
         self.mse_score = None
         self.is_trained = False
+        self.features = ['Boxes_Shipped', 'Price_per_Box', 'Marketing_Spend']
 
-    def train_model(self, df):
+    def train_model(self, df: pd.DataFrame):
         """
-        Huấn luyện mô hình Hồi quy tuyến tính trên toàn bộ dữ liệu (200.000 dòng).
-        
-        Input:
-            df (DataFrame): Tập dữ liệu 200.000 dòng đã qua xử lý làm sạch.
-        Output:
-            r2_score (float), mse_score (float)
+        Huấn luyện mô hình Hồi quy tuyến tính trên toàn bộ dữ liệu.
         """
-        features = ['Boxes_Shipped', 'Price_per_Box', 'Marketing_Spend']
         target = 'Amount'
 
         # Kiểm tra sự tồn tại của các cột dữ liệu
-        if not all(col in df.columns for col in features + [target]):
-            raise ValueError(f"Dữ liệu truyền vào thiếu các cột bắt buộc: {features} hoặc {target}")
+        if not all(col in df.columns for col in self.features + [target]):
+            raise ValueError(f"Dữ liệu truyền vào thiếu các cột bắt buộc: {self.features} hoặc {target}")
 
         # Làm sạch các dòng NaN nếu có trước khi đưa vào mô hình
-        df_clean = df.dropna(subset=features + [target])
+        df_clean = df.dropna(subset=self.features + [target])
 
-        X = df_clean[features]
+        if df_clean.empty:
+            raise ValueError("Dữ liệu sau khi loại bỏ NaN bị rỗng, không thể huấn luyện.")
+
+        X = df_clean[self.features]
         y = df_clean[target]
 
-        # Chia dữ liệu: 80% Train (~160.000 dòng), 20% Test (~40.000 dòng)
+        # Chia dữ liệu: 80% Train, 20% Test
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         # Huấn luyện mô hình
@@ -76,28 +76,37 @@ class DataPredictor:
         if not self.is_trained:
             raise Exception("Mô hình chưa được huấn luyện. Vui lòng gọi hàm train_model() trước.")
 
-        input_data = np.array([[boxes, price, marketing]])
+        # Định dạng input thành DataFrame với tên cột chuẩn để tránh UserWarning của scikit-learn
+        input_data = pd.DataFrame(
+            [[boxes, price, marketing]], 
+            columns=self.features
+        )
         prediction = self.model.predict(input_data)
         return prediction[0]
-#===============================
-# GIAO DIỆN UI
-#===============================
-import streamlit as st
-from src.predictor import DataPredictor
 
-def render_tab_5(df_clean):
+
+#===============================
+# GIAO DIỆN UI STREAMLIT
+#===============================
+
+def render_tab_5(df_clean: pd.DataFrame):
     st.header("📈 Tab 5: Dự đoán Doanh thu (Machine Learning)")
-    st.caption("Huấn luyện mô hình Hồi quy tuyến tính trên toàn bộ 200.000 dòng dữ liệu")
+    st.caption("Huấn luyện mô hình Hồi quy tuyến tính trên toàn bộ dữ liệu")
+
+    if df_clean is None or df_clean.empty:
+        st.warning("⚠️ Chưa có dữ liệu sạch từ Cleaner. Vui lòng kiểm tra lại luồng chạy.")
+        return
 
     # -------------------------------------------------------------------------
     # KHU VỰC 1: HUẤN LUYỆN & ĐÁNH GIÁ MÔ HÌNH (R2 & MSE)
     # -------------------------------------------------------------------------
     st.subheader("1. Đánh giá độ chính xác của mô hình")
     
+    # Khởi tạo mô hình ngay tại đây
     predictor = DataPredictor()
     
     try:
-        # Huấn luyện mô hình trên dữ liệu 200k dòng
+        # Huấn luyện mô hình trên dữ liệu được truyền vào
         r2, mse = predictor.train_model(df_clean)
         
         # Sườn hiển thị KPI chỉ số đánh giá
@@ -151,12 +160,43 @@ def render_tab_5(df_clean):
             st.error(f"Lỗi khi dự đoán: {e}")
 
     # -------------------------------------------------------------------------
-    # KHU VỰC 3: BẢO VỆ PHƯƠNG ÁN (Ghi chú trực quan trên UI)
+    # KHU VỰC 3: BẢO VỆ PHƯƠNG ÁN
     # -------------------------------------------------------------------------
     st.markdown("---")
     with st.expander("📌 Bảo vệ phương án: Lý do chọn Hồi quy tuyến tính"):
         st.markdown("""
-        - **Không chọn If/Else:** Luật rẽ nhánh không thể tự học hỏi hay cập nhật trọng số từ 200.000 dòng dữ liệu lịch sử.
+        - **Không chọn If/Else:** Luật rẽ nhánh không thể tự học hỏi hay cập nhật trọng số từ dữ liệu lịch sử.
         - **Không chọn Deep Learning:** Mạng nơ-ron quá nặng nề, khó giải thích (black-box) và không phù hợp với bài toán dự đoán đơn giản trên dữ liệu bảng.
         - **Ưu điểm của Linear Regression:** Nhẹ, huấn luyện cực nhanh, cho kết quả chính xác cao đối với các biến có mối quan hệ tuyến tính và dễ trình bày các chỉ số toán học ($R^2$, $MSE$).
         """)
+
+
+# =====================================================================
+# BẢN DEMO ĐỘC LẬP: TEST MACHINE LEARNING TRÊN TRÌNH DUYỆT
+# Lệnh chạy: streamlit run data_predictor_2.py
+# =====================================================================
+if __name__ == "__main__":
+    st.set_page_config(page_title="Test ML Predictor", layout="wide")
+    st.title("Giao Diện Test Độc Lập - Thành Viên 5")
+    
+    # Tạo dữ liệu giả có tính tuyến tính (Amount bị ảnh hưởng bởi Boxes, Price, Marketing)
+    np.random.seed(42)
+    boxes = np.random.randint(50, 500, 200)
+    price = np.random.uniform(5.0, 20.0, 200)
+    marketing = np.random.randint(100, 1000, 200)
+    
+    # Amount = Boxes * Price + 0.5 * Marketing + noise
+    amount = (boxes * price) + (0.5 * marketing) + np.random.normal(0, 100, 200)
+    
+    mock_data = pd.DataFrame({
+        'Boxes_Shipped': boxes,
+        'Price_per_Box': price,
+        'Marketing_Spend': marketing,
+        'Amount': amount
+    })
+    
+    st.success("Đã tạo tập dữ liệu giả lập để huấn luyện mô hình!")
+    st.dataframe(mock_data.head())
+    
+    # Chạy giao diện Tab 5
+    render_tab_5(mock_data)
