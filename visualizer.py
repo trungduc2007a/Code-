@@ -11,19 +11,22 @@ import streamlit as st
 
 class DataVisualizer:
     """
-    Class DataVisualizer nhận kết quả dữ liệu sạch 
+    Class DataVisualizer nhận kết quả dữ liệu từ RAM (Thành viên 3)
     và lập trình các hàm vẽ biểu đồ bằng Matplotlib và Seaborn.
     """
     def __init__(self, df: pd.DataFrame):
+        if df is None or df.empty:
+            raise ValueError("❌ Lỗi: Dữ liệu truyền vào Visualizer bị trống.")
+            
         self.df = df.copy()
         # Thiết lập giao diện biểu đồ chuẩn
         sns.set_theme(style="whitegrid")
         plt.rcParams.update({'font.size': 10, 'figure.autolayout': True})
 
-    def plot_line_chart(self, freq: str = 'M') -> plt.Figure:
+    def plot_line_chart(self, freq: str = 'ME') -> plt.Figure:
         """
         1. Biểu đồ đường (Line Chart): Thể hiện xu hướng doanh thu theo tháng/quý.
-        :param freq: 'M' (Tháng) hoặc 'Q' (Quý)
+        :param freq: 'ME' (Tháng) hoặc 'QE' (Quý) - Cập nhật cú pháp mới của Pandas
         """
         fig, ax = plt.subplots(figsize=(10, 4.5))
         
@@ -31,23 +34,29 @@ class DataVisualizer:
             temp_df = self.df.copy()
             temp_df['Order_Date'] = pd.to_datetime(temp_df['Order_Date'], errors='coerce')
             
-            # Nhóm dữ liệu theo tháng/quý
-            resampled = temp_df.resample(freq, on='Order_Date')['Amount'].sum().reset_index()
-            label_text = "Tháng" if freq == 'M' else "Quý"
+            # Xóa các dòng có ngày tháng bị lỗi NaT trước khi resample
+            temp_df = temp_df.dropna(subset=['Order_Date'])
             
-            ax.plot(
-                resampled['Order_Date'], 
-                resampled['Amount'], 
-                marker='o', 
-                color='#1f77b4', 
-                linewidth=2,
-                markersize=6
-            )
-            ax.set_title(f"📈 Xu Hướng Doanh Thu Theo {label_text}", fontsize=12, fontweight='bold', pad=12)
-            ax.set_xlabel("Thời Gian")
-            ax.set_ylabel("Tổng Doanh Thu ($)")
-            ax.grid(True, linestyle='--', alpha=0.5)
-            fig.autofmt_xdate()
+            if not temp_df.empty:
+                # Nhóm dữ liệu theo tháng/quý
+                resampled = temp_df.resample(freq, on='Order_Date')['Amount'].sum().reset_index()
+                label_text = "Tháng" if freq == 'ME' else "Quý"
+                
+                ax.plot(
+                    resampled['Order_Date'], 
+                    resampled['Amount'], 
+                    marker='o', 
+                    color='#1f77b4', 
+                    linewidth=2,
+                    markersize=6
+                )
+                ax.set_title(f"📈 Xu Hướng Doanh Thu Theo {label_text}", fontsize=12, fontweight='bold', pad=12)
+                ax.set_xlabel("Thời Gian")
+                ax.set_ylabel("Tổng Doanh Thu ($)")
+                ax.grid(True, linestyle='--', alpha=0.5)
+                fig.autofmt_xdate()
+            else:
+                ax.text(0.5, 0.5, "Dữ liệu ngày tháng không hợp lệ", ha='center', va='center', color='red')
         else:
             ax.text(0.5, 0.5, "Thiếu cột Order_Date hoặc Amount trong dữ liệu", ha='center', va='center', color='red')
             
@@ -55,16 +64,19 @@ class DataVisualizer:
 
     def plot_bar_chart(self, group_by: str = 'Country') -> plt.Figure:
         """
-        2. Biểu đồ thanh ngang/Cột: So sánh doanh thu giữa các quốc gia hoặc top sản phẩm.
+        2. Biểu đồ thanh ngang/Cột (Bar/Horizontal Bar Chart): 
+           So sánh doanh thu giữa các quốc gia (Country) hoặc top sản phẩm (Product).
         """
         fig, ax = plt.subplots(figsize=(10, 5))
         
         if group_by in self.df.columns and 'Amount' in self.df.columns:
             if group_by == 'Product':
+                # Top 10 sản phẩm
                 grouped = self.df.groupby('Product')['Amount'].sum().sort_values(ascending=True).tail(10)
                 title = " Top 10 Sản Phẩm Có Doanh Thu Cao Nhất"
                 color = '#2ca02c'
             else:
+                # Doanh thu theo quốc gia
                 grouped = self.df.groupby('Country')['Amount'].sum().sort_values(ascending=True)
                 title = " So Sánh Doanh Thu Giữa Các Quốc Gia (Country)"
                 color = '#1f77b4'
@@ -75,6 +87,7 @@ class DataVisualizer:
             ax.set_ylabel(group_by)
             ax.grid(axis='x', linestyle='--', alpha=0.5)
             
+            # Hiển thị giá trị cụ thể ở từng thanh
             for bar in bars:
                 w = bar.get_width()
                 ax.text(w * 1.01, bar.get_y() + bar.get_height()/2, f"${w:,.0f}", va='center', fontsize=8)
@@ -85,7 +98,8 @@ class DataVisualizer:
 
     def plot_pie_chart(self) -> plt.Figure:
         """
-        3. Biểu đồ tròn: Tỷ trọng doanh thu theo kênh bán hàng.
+        3. Biểu đồ tròn (Pie Chart): 
+           Thể hiện tỷ trọng doanh thu theo kênh bán hàng (Channel: Retail, Wholesale, Online).
         """
         fig, ax = plt.subplots(figsize=(7, 6))
         
@@ -111,10 +125,12 @@ class DataVisualizer:
 
     def plot_scatter_and_heatmap(self) -> plt.Figure:
         """
-        4. Biểu đồ phân tán (Scatter Plot) & Nhiệt (Heatmap).
+        4. Biểu đồ phân tán (Scatter Plot) & Nhiệt (Heatmap): 
+           Thể hiện độ tương quan giữa Boxes_Shipped, Marketing_Spend, Discount_Pct, Amount.
         """
         fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
         
+        # Biểu đồ phân tán (Scatter Plot)
         if 'Boxes_Shipped' in self.df.columns and 'Amount' in self.df.columns:
             sns.scatterplot(
                 data=self.df, 
@@ -140,6 +156,7 @@ class DataVisualizer:
         else:
             axes[0].text(0.5, 0.5, "Thiếu cột Boxes_Shipped hoặc Amount", ha='center', va='center')
 
+        # Bản đồ nhiệt (Heatmap) độ tương quan 4 biến
         target_cols = ['Boxes_Shipped', 'Marketing_Spend', 'Discount_Pct', 'Amount']
         valid_cols = [c for c in target_cols if c in self.df.columns]
         
@@ -168,20 +185,26 @@ class DataVisualizer:
 def render_tab_4(df_clean: pd.DataFrame):
     """
     Hàm dựng giao diện Tab 4 cho ứng dụng Streamlit.
-    (Hàm này sẽ được gọi bởi file app.py chính của nhóm)
     """
-    st.header(" Tab 4: Trực Quan Hóa Dữ Liệu")
+    st.header("📈 Tab 4: Trực Quan Hóa Dữ Liệu")
     st.caption("Module `src/visualizer.py` - Lập trình bởi Thành viên 4")
     
     if df_clean is None or df_clean.empty:
-        st.warning(" Chưa có dữ liệu sạch từ RAM. Vui lòng kiểm tra lại luồng chạy ở các Tab trước.")
+        st.warning("⚠️ Chưa có dữ liệu sạch từ Cleaner. Vui lòng kiểm tra lại luồng chạy.")
         return
 
-    visualizer = DataVisualizer(df_clean)
+    try:
+        # Khởi tạo đối tượng DataVisualizer
+        visualizer = DataVisualizer(df_clean)
+    except Exception as e:
+        st.error(f"Lỗi khởi tạo biểu đồ: {e}")
+        return
+
     st.markdown("---")
 
+    # Giao diện UI: Tạo các hộp chọn (Dropdown) theo đúng phân công
     chart_choice = st.selectbox(
-        " Chọn thuộc tính / loại biểu đồ muốn xem trực quan:",
+        "📊 Chọn thuộc tính / loại biểu đồ muốn xem trực quan:",
         [
             "1. Biểu đồ đường - Xu hướng doanh thu theo Tháng",
             "2. Biểu đồ đường - Xu hướng doanh thu theo Quý",
@@ -193,12 +216,14 @@ def render_tab_4(df_clean: pd.DataFrame):
         key="member_4_select_box"
     )
 
-    st.markdown("###  Kết Quả Hiển Thị Biểu Đồ")
+    st.markdown("### 🖼️ Kết Quả Hiển Thị Biểu Đồ")
 
+    # Render biểu đồ tương ứng với lựa chọn của người dùng
+    # Sử dụng 'ME' và 'QE' thay vì 'M' và 'Q' để tương thích với Pandas phiên bản mới
     if "Tháng" in chart_choice:
-        st.pyplot(visualizer.plot_line_chart(freq='M'))
+        st.pyplot(visualizer.plot_line_chart(freq='ME'))
     elif "Quý" in chart_choice:
-        st.pyplot(visualizer.plot_line_chart(freq='Q'))
+        st.pyplot(visualizer.plot_line_chart(freq='QE'))
     elif "Quốc gia" in chart_choice:
         st.pyplot(visualizer.plot_bar_chart(group_by='Country'))
     elif "Sản phẩm" in chart_choice:
@@ -209,40 +234,32 @@ def render_tab_4(df_clean: pd.DataFrame):
         st.pyplot(visualizer.plot_scatter_and_heatmap())
 
 # =====================================================================
-# PIPELINE KIỂM THỬ ĐỘC LẬP (Mô phỏng luồng dữ liệu)
+# BẢN DEMO ĐỘC LẬP: CHẠY FILE NÀY ĐỂ TEST TRỰC QUAN HÓA TRÊN TRÌNH DUYỆT
+# Lệnh chạy: streamlit run data_visualizer_2.py
 # =====================================================================
 if __name__ == "__main__":
-    # Khối lệnh này chỉ chạy khi bạn gõ: streamlit run data_visualizer_2.py
-    # Nếu file này được import vào app.py, khối lệnh này sẽ bị bỏ qua.
+    st.set_page_config(page_title="Test Visualizer", layout="wide")
+    st.title("Giao Diện Test Độc Lập - Thành Viên 4")
     
-    st.set_page_config(layout="wide", page_title="Test Tab 4")
+    # 1. Tạo dữ liệu giả (Mock Data) để mô phỏng đầu ra của DataCleaner
+    # Dữ liệu giả này đảm bảo có đủ các cột mà Visualizer cần vẽ
+    np.random.seed(42)
+    dates = pd.date_range(start="2023-01-01", periods=100, freq='D')
     
-    try:
-        # Cố gắng lấy dữ liệu thật từ các file trước đó
-        from data_loader import DataLoader
-        from data_cleaner import DataCleaner
-        
-        loader = DataLoader("Chocolate_Sales.xlsx")
-        df_raw = loader.process_data()
-        
-        cleaner = DataCleaner(df_raw)
-        df_cleaned = cleaner.clean_missing_and_negative_data()
-        df_final = cleaner.feature_engineering()
-        
-    except Exception as e:
-        st.warning(f"Không thể tải dữ liệu thật (Lỗi: {e}). Đang dùng dữ liệu giả lập.")
-        # Dữ liệu giả lập để vẽ biểu đồ khi test độc lập
-        dates = pd.date_range(start='2023-01-01', periods=100)
-        df_final = pd.DataFrame({
-            'Order_Date': dates,
-            'Amount': np.random.randint(100, 1000, 100),
-            'Boxes_Shipped': np.random.randint(10, 100, 100),
-            'Country': np.random.choice(['USA', 'UK', 'Canada'], 100),
-            'Product': np.random.choice(['Dark Choc', 'Milk Choc', 'White Choc'], 100),
-            'Channel': np.random.choice(['Online', 'Retail', 'Wholesale'], 100),
-            'Marketing_Spend': np.random.randint(50, 200, 100),
-            'Discount_Pct': np.random.uniform(0.01, 0.15, 100)
-        })
+    mock_data = pd.DataFrame({
+        'Order_Date': dates,
+        'Amount': np.random.randint(1000, 5000, 100),
+        'Boxes_Shipped': np.random.randint(10, 100, 100),
+        'Country': np.random.choice(['USA', 'UK', 'Canada', 'Australia'], 100),
+        'Product': np.random.choice(['Mint', 'Dark', 'Milk', 'White', 'Caramel'], 100),
+        'Channel': np.random.choice(['Retail', 'Online', 'Wholesale'], 100),
+        'Marketing_Spend': np.random.randint(100, 500, 100),
+        'Discount_Pct': np.random.uniform(0.0, 0.2, 100)
+    })
     
-    # Gọi hàm dựng giao diện như cách file app.py sẽ gọi
-    render_tab_4(df_final)
+    st.success("Đã tạo dữ liệu giả lập thành công!")
+    st.dataframe(mock_data.head())
+    
+    # 2. Gọi hàm render_tab_4 truyền dữ liệu giả vào
+    # Nếu code chạy tốt ở đây, nó chắc chắn sẽ chạy tốt khi ghép vào Main App
+    render_tab_4(mock_data)
