@@ -18,10 +18,15 @@ class DataCleaner:
         else:
             for col in ['Amount', 'Boxes_Shipped']:
                 if col in self.df.columns:
+                    # Bổ sung logic cho median
                     if fill_method == "mean":
                         fill_value = self.df[col].mean()
                     elif fill_method == "zero":
                         fill_value = 0 # Điền số 0 vào ô trống
+                    elif fill_method == "median":
+                        fill_value = self.df[col].median()
+                    else:
+                        fill_value = 0 # Dự phòng nếu truyền sai tên phương pháp (fallback)
                     
                     # Lệnh này tự động quét và lấp đầy lỗ hổng trên toàn bộ cột
                     self.df[col] = self.df[col].fillna(fill_value)
