@@ -4,7 +4,7 @@ import pandas as pd
 # ==========================================
 # IMPORT CÁC CLASS ĐỘC LẬP TỪ 5 FILE
 # ==========================================
-from data_loader_2 import DataLoader
+from data_loader_1 import DataLoader
 from data_cleaner_2 import DataCleaner
 from data_analyzer_3 import DataAnalyzer
 from data_visualizer_4 import render_tab_4
